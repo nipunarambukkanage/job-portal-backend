@@ -1,6 +1,44 @@
 const passport = require('passport');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const LocalStrategy = require('passport-local').Strategy;
+const jwt = require('jsonwebtoken');
+
+passport.use(
+  new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
+    try {
+      const user = await User.findOne({ email });
+
+      if (!user) {
+        return done(null, false, { message: 'Incorrect email or password' });
+      }
+
+      const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordMatch) {
+        return done(null, false, { message: 'Incorrect email or password' });
+      }
+
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  })
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (error) {
+    done(error);
+  }
+});
+
 
 exports.registerUser = async (req, res) => {
   const { firstName,
@@ -21,6 +59,8 @@ exports.registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    //console.log("hashedPassword******", hashedPassword);
+
     const newUser = new User({
       firstName,
       lastName,
@@ -30,6 +70,7 @@ exports.registerUser = async (req, res) => {
       userFunction,
       email,
       password: hashedPassword,
+      //password
     });
 
     await newUser.save();
@@ -41,8 +82,10 @@ exports.registerUser = async (req, res) => {
   }
 };
 
+
 exports.loginUser = (req, res, next) => {
   passport.authenticate('local', (err, user, info) => {
+    
     if (err) {
       console.error('Error in user login:', err);
       return res.status(500).json({ message: 'Internal Server Error' });
@@ -52,13 +95,15 @@ exports.loginUser = (req, res, next) => {
       return res.status(401).json({ message: info.message });
     }
 
+    const token = jwt.sign({ userId: user._id }, 'yourSecretKey', { expiresIn: '1h' });
+
     req.logIn(user, (err) => {
       if (err) {
         console.error('Error in user login:', err);
         return res.status(500).json({ message: 'Internal Server Error' });
       }
-
-      return res.status(200).json({ message: 'Login successful', user });
+      console.log("token************", token);
+      return res.status(200).json({ message: 'Login successful', user, token});
     });
   })(req, res, next);
 };

@@ -52,7 +52,9 @@ exports.createJob = async (req, res) => {
 
 exports.updateJob = async (req, res) => {
   const jobId = req.params.id;
-  const { title, company, location, description, requirements, categoryId } = req.body;
+  const { title, company, location, description, requirements, category } = req.body;
+
+  console.log("category *****", category);
 
   try {
     const updatedJob = await Job.findByIdAndUpdate(
@@ -63,10 +65,12 @@ exports.updateJob = async (req, res) => {
         location,
         description,
         requirements,
-        category: categoryId,
+        category,
       },
       { new: true, runValidators: true }
     ).populate('category');
+
+    console.log("category *****", category);
 
     if (!updatedJob) {
       return res.status(404).json({ message: 'Job not found' });
