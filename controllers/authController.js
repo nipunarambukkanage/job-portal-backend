@@ -109,6 +109,17 @@ exports.loginUser = (req, res, next) => {
 };
 
 exports.logoutUser = (req, res) => {
-  req.logout();
-  res.status(200).json({ message: 'Logout successful' });
+  try {
+    req.logout((err) => {
+      if (err) {
+        console.error('Error in logout:', err);
+        return res.status(500).json({ message: 'Internal Server Error' });
+      }
+
+      res.status(200).json({ message: 'Logout successful' });
+    });
+  } catch (error) {
+    console.error('Error in logout:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 };
