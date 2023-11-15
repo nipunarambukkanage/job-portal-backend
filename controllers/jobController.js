@@ -87,7 +87,7 @@ exports.deleteJob = async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    const deletedJob = await Job.findByIdAndRemove(jobId).populate('category');
+    const deletedJob = await Job.findOneAndDelete({ _id: jobId }).populate('category');
 
     if (!deletedJob) {
       return res.status(404).json({ message: 'Job not found' });
