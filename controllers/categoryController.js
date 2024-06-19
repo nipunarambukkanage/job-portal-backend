@@ -1,14 +1,34 @@
+const mongoose = require('mongoose');
 const Category = require('../models/Category');
 
+//TODO : Add search calls with these functionalities : filtering, grouping, search, sorting, tags, search by location
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find();
-    res.status(200).json(categories);
+    const { page = 1, limit = 10, sortBy = 'name', order = 'asc', search = '' } = req.query;
+
+    const query = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { created_by: { $regex: search, $options: 'i' } },
+          ],
+        }
+      : {};
+
+    const categories = await Category.find(query)
+      .sort({ [sortBy]: order === 'asc' ? 1 : -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const total = await Category.countDocuments(query);
+
+    res.status(200).json({ categories, total });
   } catch (error) {
     console.error('Error in getting categories:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
 
 exports.getCategoryById = async (req, res) => {
   const categoryId = req.params.id;

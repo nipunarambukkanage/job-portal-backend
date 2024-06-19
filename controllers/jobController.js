@@ -1,9 +1,36 @@
 const Job = require('../models/Job');
 
+// exports.getAllJobs = async (req, res) => {
+//   try {
+//     const jobs = await Job.find().populate('category'); 
+//     res.status(200).json(jobs);
+//   } catch (error) {
+//     console.error('Error in getting jobs:', error);
+//     res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// };
+
 exports.getAllJobs = async (req, res) => {
   try {
-    const jobs = await Job.find().populate('category'); 
-    res.status(200).json(jobs);
+    const { page = 1, limit = 10, sortBy = 'title', order = 'asc', search = '' } = req.query;
+
+    const query = search
+      ? {
+          $or: [
+            { title: { $regex: search, $options: 'i' } },
+            { company: { $regex: search, $options: 'i' } },
+          ],
+        }
+      : {};
+
+    const jobs = await Job.find(query)
+      .sort({ [sortBy]: order === 'asc' ? 1 : -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const total = await Job.countDocuments(query);
+
+    res.status(200).json({ jobs, total });
   } catch (error) {
     console.error('Error in getting jobs:', error);
     res.status(500).json({ message: 'Internal Server Error' });
