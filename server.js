@@ -10,12 +10,19 @@ const jobRoutes = require('./routes/jobRoutes');
 const userRoutes = require('./routes/userRoutes');
 const jwt = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
+const cors = require('cors');
 
 const app = configureExpress();
 
 connectDB();
 
 app.use(bodyParser.json());
+
+app.use(cors({
+  origin: 'http://localhost:3000', // Allow requests from this origin
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed HTTP methods
+  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+}));
 
 // Middleware for sessions
 app.use(
