@@ -8,11 +8,16 @@ const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const userRoutes = require('./routes/userRoutes');
+const jwt = require('express-jwt');
+const jwksRsa = require('jwks-rsa');
 
 const app = configureExpress();
 
 connectDB();
 
+app.use(bodyParser.json());
+
+// Middleware for sessions
 app.use(
   session({
     secret: 'selcret-key-nipuna1',
@@ -24,10 +29,25 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/api/auth', authRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/users', userRoutes);
+// Middleware to check JWT
+const checkJwt = jwt({
+  secret: jwksRsa.expressJwtSecret({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 5,
+    jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
+  }),
+  audience: process.env.AUTH0_AUDIENCE,
+  issuer: `https://${process.env.AUTH0_DOMAIN}/`,
+  algorithms: ['RS256']
+});
 
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/categories', checkJwt, categoryRoutes);
+app.use('/api/jobs', jobRoutes); // You can add checkJwt here if required
+app.use('/api/users', checkJwt, userRoutes);
+
+// Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
